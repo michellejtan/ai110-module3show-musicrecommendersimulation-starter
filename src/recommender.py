@@ -97,21 +97,21 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
     Scores a single song against a user preference dict.
     Returns (total_score, reasons) where reasons explains each component.
 
-    Scoring rules (max 4.5 pts):
-      +2.0  genre match
+    EXPERIMENTAL WEIGHT SHIFT (max still 4.5 pts):
+      +1.0  genre match          (was +2.0 — halved)
       +1.0  mood match
-      +1.0  energy proximity  (1.0 - |song.energy - target_energy|)
+      +2.0  energy proximity     (was +1.0 — doubled)  2.0*(1.0 - |song.energy - target_energy|)
       +0.5  acousticness match (song.acousticness >= 0.5 ↔ likes_acoustic)
     """
     score = 0.0
     reasons: List[str] = []
 
-    # --- genre match (+2.0) ---
+    # --- genre match (+1.0, was +2.0) ---
     song_genre = song.get("genre", "")
     user_genre = user_prefs.get("favorite_genre", "")
     if song_genre and song_genre == user_genre:
-        score += 2.0
-        reasons.append("genre match (+2.0)")
+        score += 1.0
+        reasons.append("genre match (+1.0)")
 
     # --- mood match (+1.0) ---
     song_mood = song.get("mood", "")
@@ -120,11 +120,11 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
         score += 1.0
         reasons.append("mood match (+1.0)")
 
-    # --- energy proximity (+0.0 – +1.0) ---
+    # --- energy proximity (+0.0 – +2.0, was +0.0 – +1.0) ---
     try:
         song_energy = float(song.get("energy", 0.0))
         target_energy = float(user_prefs.get("target_energy", 0.0))
-        energy_pts = round(1.0 - abs(song_energy - target_energy), 4)
+        energy_pts = round(2.0 * (1.0 - abs(song_energy - target_energy)), 4)
         score += energy_pts
         reasons.append(f"energy proximity (+{energy_pts})")
     except (TypeError, ValueError):
